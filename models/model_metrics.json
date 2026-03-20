@@ -1,0 +1,31 @@
+{
+  "silhouette": 0.5263,
+  "davies": 0.67,
+  "calinski": 4274.6,
+  "inertia": 5154.8,
+  "aic": null,
+  "bic": null,
+  "n_iter": 4,
+  "model_variant": "kmeans",
+  "preprocessor_variant": "standard",
+  "features": [
+    "Annual Income (k$)",
+    "Spending Score (1-100)"
+  ],
+  "candidate_results": [
+    {
+      "variant": "kmeans",
+      "preprocessor": "standard",
+      "features": [
+        "Annual Income (k$)",
+        "Spending Score (1-100)"
+      ],
+      "silhouette": 0.527,
+      "davies": 0.6706,
+      "calinski": 4278.3,
+      "inertia": 642.4,
+      "aic": null,
+      "bic": null
+    }
+  ]
+}

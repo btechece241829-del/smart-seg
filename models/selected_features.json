@@ -1,0 +1,8 @@
+{
+  "features": [
+    "Annual Income (k$)",
+    "Spending Score (1-100)"
+  ],
+  "variant": "kmeans",
+  "preprocessor": "standard"
+}

@@ -1,0 +1,7 @@
+{
+  "dataset_label": "mall_customers_20k.csv",
+  "dataset_path": "D:\\mall_segment_overall_final\\mall_segmentation\\data\\uploads\\20260320_213837_mall_customers_20k.csv",
+  "trained_at": "2026-03-20 21:38:43",
+  "rows": 20000,
+  "silhouette": 0.5263
+}

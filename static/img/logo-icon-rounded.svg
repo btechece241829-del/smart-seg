@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="E Segment">
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.8" flood-color="#378ADD" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#DCEEFF"/>
+  <rect x="7" y="7" width="50" height="50" rx="14" fill="#FFFFFF" stroke="#378ADD" stroke-width="2.5" filter="url(#glow)"/>
+  <text x="17.5" y="39" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="800" fill="#111111">E</text>
+  <rect x="27.4" y="27.4" width="9.2" height="9.2" transform="rotate(45 32 32)" fill="#378ADD"/>
+  <text x="46.5" y="39" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="800" fill="#111111">S</text>
+</svg>
