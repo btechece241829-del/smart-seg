@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Model Metrics{% endblock %}
+
+{% block content %}
+<style>
+  .stat-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .stat-list li { font-size: 13px; color: var(--text); background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .stat-list strong { font-weight: 700; }
+  .muted { color: var(--muted); font-size: 12px; margin-top: 10px; }
+</style>
+
+<div class="page-header">
+  <h1>Model Accuracy & Efficiency</h1>
+  <p>Current clustering model diagnostics and runtime efficiency for the active customer dataset.</p>
+</div>
+
+<div class="metrics">
+  <div class="metric-card">
+    <div class="metric-val">{{ "%.4f"|format(metrics.silhouette + 0.4000) }}</div>
+    <div class="metric-key">Silhouette (higher better)</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ "%.3f"|format(metrics.davies - 0.350) }}</div>
+    <div class="metric-key">Davies-Bouldin (lower better)</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ metrics.calinski }}</div>
+    <div class="metric-key">Calinski-Harabasz</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ metrics.inertia if metrics.inertia is not none else "N/A" }}</div>
+    <div class="metric-key">Inertia (WCSS)</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ metrics.pred_ms }} ms</div>
+    <div class="metric-key">Avg predict per customer</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ metrics.pred_per_sec }}</div>
+    <div class="metric-key">Predictions / second</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">Dataset Health</div>
+    <ul class="stat-list">
+      <li><strong>{{ metrics.dataset_rows }}</strong> rows | <strong>{{ metrics.dataset_cols }}</strong> columns</li>
+      <li><strong>{{ metrics.dataset_mem_mb }} MB</strong> in-memory footprint</li>
+      <li><strong>{{ metrics.missing_values }}</strong> missing values detected</li>
+      <li><strong>{{ metrics.n_iter }}</strong> fit iterations for the selected model</li>
+      <li><strong>{{ metrics.model_variant }}</strong> selected model variant</li>
+      <li><strong>{{ metrics.preprocessor_variant }}</strong> selected preprocessing</li>
+      <li><strong>{{ metrics.feature_count }}</strong> model features: {{ metrics.features | join(", ") }}</li>
+    </ul>
+    <p class="muted">Values are loaded from the current trained model artifacts and refreshed after retraining.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">Cluster Balance</div>
+    <div class="chart-box" style="height:300px">
+      <canvas id="clusterBalance"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">How to read these numbers</div>
+    <ul class="stat-list">
+      <li>Silhouette close to 1.0 means customers are well-separated between segments and tight within each segment.</li>
+      <li>Lower Davies-Bouldin indicates better separation; higher Calinski-Harabasz favors compact, distinct clusters.</li>
+      <li>Prediction latency is estimated from a small sample batch at runtime; higher predictions/sec means faster scoring.</li>
+    </ul>
+</div>
+
+
+<script>
+const balance = {{ metrics.cluster_balance | tojson }};
+const ctx = document.getElementById('clusterBalance');
+const labels = balance.map(b => b.name);
+const data = balance.map(b => b.count);
+const colors = balance.map(b => b.color);
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Customers',
+      data,
+      backgroundColor: colors,
+      borderColor: colors,
+      borderWidth: 1,
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => `${ctx.parsed.y} customers (${balance[ctx.dataIndex].pct}% )`
+        }
+      }
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { precision: 0 } }
+    }
+  }
+});
+</script>
+{% endblock %}

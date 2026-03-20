@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Predict Segment{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Predict Customer Segment</h1>
+  <p>Enter a new customer's details and the model will predict their segment instantly</p>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">New Customer Details</div>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/predict">
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" name="age" min="1" max="100" placeholder="e.g. 28"
+               value="{{ result.input.age if result else '' }}" required/>
+      </div>
+      <div class="form-group">
+        <label>Gender</label>
+        <select name="gender">
+          <option value="Male" {% if result and result.input.gender == 'Male' %}selected{% endif %}>Male</option>
+          <option value="Female" {% if result and result.input.gender == 'Female' %}selected{% endif %}>Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Annual Income (k INR)</label>
+        <input type="number" name="income" min="0" max="300" step="1" placeholder="e.g. 75"
+               value="{{ result.input.income if result else '' }}" required/>
+      </div>
+      <div class="form-group">
+        <label>Spending Score (1 - 100)</label>
+        <input type="number" name="score" min="1" max="100" placeholder="e.g. 82"
+               value="{{ result.input.score if result else '' }}" required/>
+      </div>
+      <button type="submit" class="btn" style="width:100%">Predict Segment</button>
+    </form>
+
+    <div style="margin-top:18px">
+      <div style="font-size:12px;font-weight:600;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Quick examples</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button onclick="fillForm(33,87,82,'Female')" class="btn btn-outline" style="width:100%;font-size:12px;padding:7px">
+          Age 33 - Female - ₹87k - Score 82
+        </button>
+        <button onclick="fillForm(41,85,18,'Male')" class="btn btn-outline" style="width:100%;font-size:12px;padding:7px">
+          Age 41 - Male - ₹85k - Score 18
+        </button>
+        <button onclick="fillForm(24,26,78,'Female')" class="btn btn-outline" style="width:100%;font-size:12px;padding:7px">
+          Age 24 - Female - ₹26k - Score 78
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    {% if result %}
+    <div class="card" style="border-left: 5px solid {{ result.color }}; margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:18px;height:18px;border-radius:50%;background:{{ result.color }}"></div>
+        <span style="font-size:20px;font-weight:700;color:#1a1a2e">{{ result.segment }}</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:#f7f8fa;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:20px;font-weight:700;color:#1a1a2e">Cluster {{ result.cluster }}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">Model label</div>
+        </div>
+        <div style="background:#f7f8fa;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:20px;font-weight:700;color:{{ result.color }}">{{ result.confidence }}%</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">Confidence score</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;display:flex;justify-content:space-between">
+          <span>Confidence</span><span>{{ result.confidence }}%</span>
+        </div>
+        <div style="height:8px;background:#e4e6ea;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:{{ result.confidence }}%;background:{{ result.color }};border-radius:4px;transition:width .6s"></div>
+        </div>
+      </div>
+
+      <div style="background:#f7f8fa;border-radius:8px;padding:12px;font-size:13px;color:#374151;margin-bottom:10px">
+        <strong>Strategy:</strong> {{ result.strategy }}
+      </div>
+      <span style="display:inline-block;font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;background:{{ result.color }}22;color:{{ result.color }}">
+        {{ result.action }}
+      </span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Similar Customers in This Segment</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Gender</th><th>Age</th><th>Income</th><th>Score</th></tr></thead>
+          <tbody>
+            {% for c in result.similar %}
+            <tr>
+              <td>{{ c.CustomerID }}</td>
+              <td>{{ c.Gender }}</td>
+              <td>{{ c.Age }}</td>
+              <td>₹{{ c['Annual Income (k$)'] }}k</td>
+              <td>{{ c['Spending Score (1-100)'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="card" style="text-align:center;padding:48px 24px;color:#6b7280">
+      <div style="font-size:40px;margin-bottom:12px">○</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:6px">No prediction yet</div>
+      <div style="font-size:13px">Fill in the form on the left and click Predict Segment</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:8px">
+  <div class="card-title">Where does your prediction fall? (Scatter reference)</div>
+  <div class="chart-box" style="height:300px">
+    <canvas id="refChart"></canvas>
+  </div>
+</div>
+
+<script>
+function fillForm(age, income, score, gender) {
+  document.querySelector('input[name=age]').value = age;
+  document.querySelector('input[name=income]').value = income;
+  document.querySelector('input[name=score]').value = score;
+  document.querySelector('select[name=gender]').value = gender;
+}
+
+const STATS = {{ cluster_stats | tojson }};
+{% if result %}const PRED_POINT = {x:{{ result.input.income }}, y:{{ result.input.score }}};{% endif %}
+
+fetch('/api/scatter').then(r => r.json()).then(data => {
+  const bySeg = {};
+  STATS.forEach(s => { bySeg[s.name] = []; });
+  data.forEach(c => {
+    if (bySeg[c.Segment]) bySeg[c.Segment].push({x:c['Annual Income (k$)'], y:c['Spending Score (1-100)']});
+  });
+
+  const datasets = STATS.map(s => ({
+    label: s.name,
+    data: bySeg[s.name],
+    backgroundColor: s.color + '88',
+    pointRadius: 4,
+    showLine: false
+  }));
+
+  {% if result %}
+  datasets.push({
+    label: 'Your customer',
+    data: [PRED_POINT],
+    backgroundColor: '#000',
+    pointRadius: 12,
+    pointStyle: 'triangle',
+    showLine: false
+  });
+  {% endif %}
+
+  new Chart(document.getElementById('refChart'), {
+    type: 'scatter',
+    data: {datasets},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {legend: {position: 'right', labels: {font: {size: 11}, boxWidth: 10}}},
+      scales: {
+        x: {title: {display: true, text: 'Annual Income (k INR)'}, min: 0, max: 150},
+        y: {title: {display: true, text: 'Spending Score'}, min: 0, max: 105}
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

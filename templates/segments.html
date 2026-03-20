@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Segment Profiles{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Segment Profiles</h1>
+  <p>Detailed characteristics and marketing strategy for each of the 5 customer segments</p>
+</div>
+
+<style>
+.seg-card {
+  background: #fff;
+  border: 1px solid #e4e6ea;
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  border-left: 5px solid var(--seg-color);
+}
+.seg-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.seg-dot    { width:16px; height:16px; border-radius:50%; background:var(--seg-color); flex-shrink:0; }
+.seg-title  { font-size:18px; font-weight:700; color:#1a1a2e; }
+.seg-count  { font-size:13px; color:#6b7280; margin-left:auto; }
+.stat-row   { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:16px; }
+.stat-box   { background:#f7f8fa; border-radius:8px; padding:12px 14px; text-align:center; }
+.stat-v     { font-size:20px; font-weight:700; color:#1a1a2e; }
+.stat-k     { font-size:11px; color:#6b7280; margin-top:2px; text-transform:uppercase; letter-spacing:.04em; }
+.strategy   { background:#f7f8fa; border-radius:8px; padding:12px 14px; font-size:13px; color:#374151; margin-bottom:10px; line-height:1.6; }
+.action-tag { display:inline-block; font-size:12px; font-weight:600; padding:5px 14px; border-radius:20px; }
+.bar-wrap   { margin-top:14px; }
+.bar-lbl    { font-size:11px; color:#6b7280; margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; display:flex; justify-content:space-between; }
+.bar-track  { height:8px; background:#e4e6ea; border-radius:4px; overflow:hidden; margin-bottom:8px; }
+.bar-fill   { height:100%; border-radius:4px; background:var(--seg-color); transition:width .6s; }
+</style>
+
+{% for s in cluster_stats %}
+<div class="seg-card" style="--seg-color:{{ s.color }}">
+  <div class="seg-header">
+    <div class="seg-dot"></div>
+    <span class="seg-title">{{ s.name }}</span>
+    <span class="seg-count">{{ s.n }} customers &nbsp;·&nbsp; {{ s.pct }}% of total</span>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="stat-v">₹{{ "%.3f"|format(s.avg_income) }}k</div>
+      <div class="stat-k">Avg Income</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-v">{{ "%.3f"|format(s.avg_score) }}</div>
+      <div class="stat-k">Avg Score</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-v">{{ s.avg_age }}</div>
+      <div class="stat-k">Avg Age</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-v">{{ s.female_pct }}%</div>
+      <div class="stat-k">Female</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-v">{{ s.n }}</div>
+      <div class="stat-k">Customers</div>
+    </div>
+  </div>
+
+  <div class="bar-wrap">
+    <div class="bar-lbl"><span>Annual Income</span><span>₹{{ "%.3f"|format(s.avg_income) }}k / ₹137k</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:{{ (s.avg_income / 137 * 100) | round(1) }}%"></div></div>
+
+    <div class="bar-lbl"><span>Spending Score</span><span>{{ "%.3f"|format(s.avg_score) }} / 100</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:{{ s.avg_score }}%"></div></div>
+  </div>
+
+  <div class="strategy">
+    <strong>Marketing Strategy:</strong> {{ s.strategy }}
+  </div>
+  <span class="action-tag" style="background:{{ s.color }}22;color:{{ s.color }}">
+    {{ s.action }}
+  </span>
+</div>
+{% endfor %}
+
+<div class="card" style="margin-top:24px">
+  <div class="card-title">Income vs Spending Score - All Segments</div>
+  <div id="cmp-legend" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;font-size:12px;color:#6b7280"></div>
+  <div class="chart-box" style="height:340px">
+    <canvas id="cmpChart"></canvas>
+  </div>
+</div>
+
+<script>
+const STATS = {{ cluster_stats | tojson }};
+const legend = document.getElementById('cmp-legend');
+STATS.forEach(s => {
+  const span = document.createElement('span');
+  span.style.cssText = 'display:flex;align-items:center;gap:5px';
+  span.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${s.color};display:inline-block"></span>${s.name}`;
+  legend.appendChild(span);
+});
+
+fetch('/api/scatter').then(r => r.json()).then(data => {
+  const bySeg = {};
+  STATS.forEach(s => { bySeg[s.name] = []; });
+  data.forEach(c => {
+    if (bySeg[c.Segment]) {
+      bySeg[c.Segment].push({ x: c['Annual Income (k$)'], y: c['Spending Score (1-100)'] });
+    }
+  });
+  const datasets = STATS.map(s => ({
+    label: s.name,
+    data: bySeg[s.name],
+    backgroundColor: s.color + 'bb',
+    pointRadius: 6,
+    showLine: false
+  })).concat(STATS.map(s => ({
+    label: s.name + ' centroid',
+    data: [{ x: s.cx, y: s.cy }],
+    backgroundColor: s.color,
+    pointRadius: 14,
+    pointStyle: 'star',
+    showLine: false
+  })));
+  new Chart(document.getElementById('cmpChart'), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Annual Income (k INR)' }, min: 0, max: 150 },
+        y: { title: { display: true, text: 'Spending Score' }, min: 0, max: 105 }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

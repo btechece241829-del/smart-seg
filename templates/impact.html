@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Business Impact{% endblock %}
+
+{% block content %}
+<style>
+.impact-banner { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:24px; }
+.impact-banner p { font-size:13px; color:var(--muted); line-height:1.7; margin:0; }
+.impact-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px; }
+.impact-card { background:#fff; border:1px solid var(--border); border-top:5px solid var(--ic); border-radius:var(--radius); padding:22px; }
+.impact-number { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ic); margin-bottom:8px; }
+.impact-title { font-size:17px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.impact-desc { font-size:13px; color:var(--muted); line-height:1.65; margin-bottom:14px; }
+.impact-metric { font-size:28px; font-weight:800; color:var(--ic); margin-bottom:4px; }
+.impact-sub { font-size:11px; color:var(--ic); opacity:.85; }
+.impact-detail { margin-top:14px; font-size:12px; color:#374151; background:#f8fafc; border-left:3px solid var(--ic); border-radius:8px; padding:10px 12px; line-height:1.55; }
+.section-head { font-size:16px; font-weight:800; color:var(--text); margin:30px 0 14px; display:flex; align-items:center; gap:10px; border-bottom:2px solid var(--border); padding-bottom:8px; }
+.section-badge { font-size:11px; font-weight:700; border-radius:999px; padding:3px 10px; }
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+.compare-card { border-radius:var(--radius); padding:18px; border:1px solid; }
+.compare-title { font-size:13px; font-weight:700; margin-bottom:14px; }
+.compare-big { font-size:36px; font-weight:800; margin-bottom:4px; }
+.compare-sub { font-size:12px; margin-bottom:14px; opacity:.85; }
+.waste-row, .seg-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.row-label { width:156px; flex-shrink:0; font-size:12px; color:#374151; }
+.row-track { flex:1; height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+.row-fill { height:100%; border-radius:999px; }
+.row-val { width:46px; text-align:right; font-size:12px; font-weight:700; }
+.alert-box { background:#eff6ff; border:1px solid #bfdbfe; border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; }
+.alert-head { font-size:14px; font-weight:700; color:#1d4ed8; margin-bottom:6px; }
+.alert-body { font-size:13px; color:#1e3a8a; line-height:1.6; }
+.step-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+.step-card { background:#fff; border:1px solid #dbeafe; border-radius:10px; padding:12px; }
+.step-num { width:22px; height:22px; border-radius:50%; background:#378add; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; margin-bottom:8px; }
+.step-title { font-size:12px; font-weight:700; color:#1d4ed8; margin-bottom:4px; }
+.step-body { font-size:12px; color:#1e40af; line-height:1.45; }
+.scale-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px; }
+.scale-box { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
+.scale-val { font-size:24px; font-weight:800; color:#7F77DD; }
+.scale-key { font-size:11px; color:var(--muted); margin-top:3px; }
+.pipeline { display:flex; align-items:center; flex-wrap:wrap; gap:0; margin:14px 0 18px; }
+.pipe-box { flex:1; min-width:110px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:10px 12px; text-align:center; font-size:12px; font-weight:500; color:var(--text); line-height:1.4; }
+.pipe-arrow { padding:0 6px; color:var(--muted); font-size:16px; }
+@media (max-width: 760px) {
+  .impact-grid, .compare-grid, .step-grid, .scale-grid { grid-template-columns:1fr; }
+}
+</style>
+
+<div class="page-header">
+  <h1>Expected Business Impact</h1>
+  <p>Live business impact analysis based on the current trained dataset and active customer segments.</p>
+</div>
+
+<div class="impact-banner">
+  <p>
+    This page now reads directly from the current uploaded dataset, current trained model, and current segment mix.
+    The numbers below update when you retrain the dashboard, so Impact 1, Impact 2, and Impact 3 stay aligned with the latest runtime data.
+  </p>
+</div>
+
+<div class="impact-grid">
+  <div class="impact-card" style="--ic:#1D9E75">
+    <div class="impact-number">Impact 01</div>
+    <div class="impact-title">Increased Efficiency</div>
+    <div class="impact-desc">Premium or segment-specific campaigns become more efficient when you target only the customers who match the offer.</div>
+    <div class="impact-metric">{{ efficiency_waste_pct }}%</div>
+    <div class="impact-sub">potential waste avoided in a VIP-only premium campaign</div>
+    <div class="impact-detail">
+      Out of {{ total }} customers, only {{ vip_count }} are in the VIP segment. Sending a premium offer to everyone would waste {{ wrong_offer_count }} sends on non-VIP customers.
+    </div>
+  </div>
+  <div class="impact-card" style="--ic:#378ADD">
+    <div class="impact-number">Impact 02</div>
+    <div class="impact-title">Retention Growth</div>
+    <div class="impact-desc">At-risk customers can be identified early and moved into a win-back flow before disengagement becomes permanent.</div>
+    <div class="impact-metric">{{ at_risk_count }}</div>
+    <div class="impact-sub">at-risk customers currently identified</div>
+    <div class="impact-detail">
+      That is {{ at_risk_pct }}% of the active dataset. These customers are the clearest short-term retention opportunity in the current segmentation output.
+    </div>
+  </div>
+  <div class="impact-card" style="--ic:#7F77DD">
+    <div class="impact-number">Impact 03</div>
+    <div class="impact-title">Scalability</div>
+    <div class="impact-desc">The current pipeline can retrain on new uploads and score new customers quickly without changing the dashboard workflow.</div>
+    <div class="impact-metric">{{ pred_ms }} ms</div>
+    <div class="impact-sub">average prediction time per customer</div>
+    <div class="impact-detail">
+      The active model is <strong>{{ model_variant }}</strong> using {{ feature_count }} features and is currently processing a dataset of {{ total }} customers.
+    </div>
+  </div>
+</div>
+
+<div class="section-head">
+  <span style="color:#1D9E75">◆</span> Impact 1 - Increased Efficiency
+  <span class="section-badge" style="background:#dcfce7;color:#166534">Live Campaign Fit</span>
+</div>
+
+<div class="compare-grid">
+  <div class="compare-card" style="background:#fef2f2;border-color:#fecaca">
+    <div class="compare-title" style="color:#991b1b">Without Segmentation - Blanket Premium Campaign</div>
+    <div class="compare-big" style="color:#dc2626">{{ efficiency_waste_pct }}%</div>
+    <div class="compare-sub" style="color:#991b1b">of sends would miss the intended VIP audience</div>
+    {% for s in cluster_stats %}
+    <div class="waste-row">
+      <span class="row-label">{{ s.name }} ({{ s.n }})</span>
+      <div class="row-track">
+        <div class="row-fill" style="width:{{ (s.n / total * 100) | round(1) if total else 0 }}%;background:{{ s.color }}"></div>
+      </div>
+      <span class="row-val" style="color:{% if s.name == 'VIP Customers' %}#166534{% else %}#991b1b{% endif %}">
+        {% if s.name == 'VIP Customers' %}OK{% else %}MISS{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+    <div style="margin-top:12px;font-size:12px;color:#991b1b;font-weight:600">
+      {{ wrong_offer_count }} of {{ total }} customers would receive the wrong premium offer.
+    </div>
+  </div>
+
+  <div class="compare-card" style="background:#f0fdf4;border-color:#bbf7d0">
+    <div class="compare-title" style="color:#166534">With Segmentation - Correct Audience Targeting</div>
+    <div class="compare-big" style="color:#16a34a">100%</div>
+    <div class="compare-sub" style="color:#166534">each segment can receive its own matching offer</div>
+    {% for s in cluster_stats %}
+    <div class="waste-row">
+      <span class="row-label">{{ s.name }} ({{ s.n }})</span>
+      <div class="row-track">
+        <div class="row-fill" style="width:100%;background:{{ s.color }}"></div>
+      </div>
+      <span class="row-val" style="color:#166534">OK</span>
+    </div>
+    {% endfor %}
+    <div style="margin-top:12px;font-size:12px;color:#166534;font-weight:600">
+      All {{ total }} customers can be mapped to a segment-specific campaign.
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:8px">
+  <div class="card-title">Revenue Contribution by Segment</div>
+  {% for s in cluster_stats %}
+  <div class="seg-row">
+    <span class="row-label">{{ s.name }}</span>
+    <div class="row-track"><div class="row-fill" style="width:{{ seg_rev[s.name] }}%;background:{{ s.color }}"></div></div>
+    <span class="row-val">{{ seg_rev[s.name] }}%</span>
+  </div>
+  {% endfor %}
+  <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.55">
+    Revenue share here is calculated from the current dataset using an income x spending-score proxy, so it updates after retraining.
+  </div>
+</div>
+
+<div class="section-head">
+  <span style="color:#378ADD">◆</span> Impact 2 - Retention Growth
+  <span class="section-badge" style="background:#dbeafe;color:#1e40af">Live At-Risk Detection</span>
+</div>
+
+<div class="alert-box">
+  <div class="alert-head">{{ at_risk_count }} At-Risk / Churn customers identified in the current dataset</div>
+  <div class="alert-body">
+    These customers are the most urgent retention opportunity right now. The count and segment averages below come from the live trained dataset, not a fixed demo snapshot.
+  </div>
+  <div class="step-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-title">Detect</div>
+      <div class="step-body">Use the current segmentation output to flag disengaging customers as soon as retraining completes.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-title">Re-engage</div>
+      <div class="step-body">Run a win-back campaign tailored to the At-Risk / Churn group with a limited-time offer.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-title">Measure</div>
+      <div class="step-body">Retrain on the next dataset refresh and track whether the at-risk share drops over time.</div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:8px">
+  <div class="card-title">Retention Signal - Average Spending Score per Segment</div>
+  <div class="chart-box" style="height:240px"><canvas id="retChart"></canvas></div>
+</div>
+
+<div class="section-head">
+  <span style="color:#7F77DD">◆</span> Impact 3 - Scalability
+  <span class="section-badge" style="background:#ede9fe;color:#5b21b6">Current Runtime Capacity</span>
+</div>
+
+<div class="scale-grid">
+  <div class="scale-box"><div class="scale-val">{{ total }}</div><div class="scale-key">Customers in current dataset</div></div>
+  <div class="scale-box"><div class="scale-val">{{ pred_ms }} ms</div><div class="scale-key">Average prediction time</div></div>
+  <div class="scale-box"><div class="scale-val">{{ pred_per_sec }}</div><div class="scale-key">Predictions per second</div></div>
+  <div class="scale-box"><div class="scale-val">5</div><div class="scale-key">Segments in active model</div></div>
+  <div class="scale-box"><div class="scale-val">{{ model_variant }}</div><div class="scale-key">Active clustering model</div></div>
+  <div class="scale-box"><div class="scale-val">{{ trained_at or 'Live' }}</div><div class="scale-key">Last trained timestamp</div></div>
+</div>
+
+<div class="card" style="margin-bottom:18px">
+  <div class="card-title">Scoring Pipeline</div>
+  <div class="pipeline">
+    <div class="pipe-box">Upload dataset</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-box">Train active model</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-box">Refresh segments</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-box">Score new customers</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-box">Update dashboard insights</div>
+  </div>
+  <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px">
+    The workflow stays the same for every dataset upload. The numbers on this page are derived from the currently loaded artifacts and runtime metrics.
+  </p>
+</div>
+
+<div class="card">
+  <div class="card-title">Current Segment Distribution</div>
+  <div class="chart-box" style="height:240px"><canvas id="scaleChart"></canvas></div>
+</div>
+
+<script>
+const STATS = {{ cluster_stats | tojson }};
+const TOTAL = {{ total }};
+
+new Chart(document.getElementById('retChart'), {
+  type: 'bar',
+  data: {
+    labels: STATS.map((s) => s.name),
+    datasets: [{
+      label: 'Avg Spending Score',
+      data: STATS.map((s) => s.avg_score),
+      backgroundColor: STATS.map((s) => s.color + 'cc'),
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      x: { ticks: { font: { size: 10 } } },
+      y: { beginAtZero: true, max: 100, title: { display: true, text: 'Avg Spending Score' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('scaleChart'), {
+  type: 'doughnut',
+  data: {
+    labels: STATS.map((s) => `${s.name} (${s.n})`),
+    datasets: [{
+      data: STATS.map((s) => s.n),
+      backgroundColor: STATS.map((s) => s.color),
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ` ${ctx.label}: ${ctx.parsed} customers (${Math.round((ctx.parsed / TOTAL) * 100)}%)`
+        }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

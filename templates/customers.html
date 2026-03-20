@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Customer Table</h1>
+  <p>All  customers with segment labels — filter by segment or search by ID</p>
+</div>
+
+<!-- FILTER -->
+<div class="card" style="margin-bottom:18px">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <span style="font-size:13px;font-weight:600;color:#6b7280">Filter by segment:</span>
+    <div class="filter-row" style="margin:0">
+      {% for seg in segments_list %}
+      <a href="/customers?segment={{ seg }}"
+         class="filter-btn {% if active_segment == seg %}active{% endif %}"
+         {% if seg != 'All' %}
+         style="border-color:{{ segment_colors[seg] }};
+                color:{% if active_segment == seg %}{{ segment_colors[seg] }}{% else %}#6b7280{% endif %};
+                {% if active_segment == seg %}background:{{ segment_colors[seg] }}18{% endif %}"
+         {% endif %}>
+        {{ seg }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <form method="get" action="/customers" style="display:flex;gap:8px;width:100%;max-width:320px">
+      <input type="hidden" name="segment" value="{{ active_segment }}"/>
+      <input type="text" name="search" placeholder="Search by Customer ID..." style="flex:1"/>
+      <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Search</button>
+    </form>
+    <span style="align-self:center;font-size:13px;color:#6b7280">{{ total }} customer{{ 's' if total != 1 }}</span>
+  </div>
+</div>
+
+<!-- TABLE -->
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Gender</th>
+          <th>Age</th>
+          <th>Income (k INR)</th>
+          <th>Spending Score</th>
+          <th>Segment</th>
+          <th>Recommended Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td><strong>{{ r.CustomerID }}</strong></td>
+          <td>{{ r.Gender }}</td>
+          <td>{{ r.Age }}</td>
+          <td>₹{{ r['Annual Income (k$)'] }}k</td>
+          <td>
+            <span style="display:inline-flex;align-items:center;gap:5px">
+              {{ r['Spending Score (1-100)'] }}
+              <span style="display:inline-block;width:{% if r['Spending Score (1-100)'] > 0 %}{{ r['Spending Score (1-100)'] * 0.5 }}{% else %}1{% endif %}px;height:5px;background:{{ segment_colors[r.Segment] }};border-radius:3px;max-width:50px"></span>
+            </span>
+          </td>
+          <td>
+            <span class="pill" style="background:{{ segment_colors[r.Segment] }}22;color:{{ segment_colors[r.Segment] }}">
+              {{ r.Segment }}
+            </span>
+          </td>
+          <td style="font-size:12px;color:#6b7280">{{ segment_actions[r.Segment] }}</td>
+        </tr>
+        {% endfor %}
+        {% if records | length == 0 %}
+        <tr><td colspan="7" style="text-align:center;color:#6b7280;padding:32px">No customers found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% block title %}SMART SEGMENTATION{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Customer Segmentation Dashboard</h1>
+  <p>{{ dataset_label }} &middot; K-Means (k=5) &middot; {{ total }} customers &middot; 5 behavioural segments</p>
+</div>
+
+{% if training_success %}
+<div class="alert alert-success">{{ training_success }}</div>
+{% endif %}
+{% if training_error %}
+<div class="alert alert-danger">{{ training_error }}</div>
+{% endif %}
+
+<div class="card upload-card">
+  <div class="card-title">Upload External Dataset and Retrain</div>
+  <div class="upload-grid">
+    <div>
+      <form method="post" action="/dataset/upload" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="dataset_file">CSV dataset</label>
+          <input class="visually-hidden" id="dataset_file" name="dataset_file" type="file" accept=".csv" required>
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-controls="dataset_file" aria-label="Upload CSV dataset">
+            <div class="dropzone-icon">+</div>
+            <div class="dropzone-title">Drag and drop your CSV here</div>
+            <div class="dropzone-subtitle">or choose a file from your device</div>
+            <div class="dropzone-actions">
+              <span class="btn btn-outline" id="chooseFileBtn">Choose File</span>
+            </div>
+            <div class="file-note" id="fileNote">No file selected</div>
+          </div>
+        </div>
+        <div class="upload-submit">
+          <button class="btn" type="submit">Upload and Train</button>
+        </div>
+      </form>
+      <div class="upload-help">
+        Required columns: {{ required_columns | join(", ") }}.
+        After upload, the model retrains and all dashboard charts refresh with the new dataset.
+      </div>
+    </div>
+
+    <div>
+      <div class="card-title" style="margin-bottom:8px">Current dataset</div>
+      <div class="stat-list">
+        <div class="stat-chip">
+          <strong>{{ total }}</strong>
+          Rows
+        </div>
+        <div class="stat-chip">
+          <strong>{{ cluster_stats | length }}</strong>
+          Segments
+        </div>
+        <div class="stat-chip">
+          <strong>&#8377;{{ avg_income }}k</strong>
+          Avg income
+        </div>
+      </div>
+      <div class="upload-help" style="margin-top:12px">{{ dataset_label }}</div>
+      {% if trained_at %}
+      <div class="upload-help">Last trained: {{ trained_at }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric-card">
+    <div class="metric-val">{{ total }}</div>
+    <div class="metric-key">Total customers</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ cluster_stats | length }}</div>
+    <div class="metric-key">Segments found</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">&#8377;{{ avg_income }}k</div>
+    <div class="metric-key">Avg annual income</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ avg_score }}</div>
+    <div class="metric-key">Avg spending score</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ avg_age }}</div>
+    <div class="metric-key">Avg age (years)</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val">{{ female_pct }}%</div>
+    <div class="metric-key">Female customers</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">Income vs Spending Score - All Segments</div>
+    <div id="scatter-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;font-size:12px;color:#6b7280"></div>
+    <div class="chart-box" style="height:320px">
+      <canvas id="scatterChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Segment Size Distribution</div>
+    <div class="chart-box" style="height:360px">
+      <canvas id="donutChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px">
+  <div class="card">
+    <div class="card-title">Avg Income per Segment</div>
+    <div class="chart-box" style="height:240px">
+      <canvas id="incomeBar"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Avg Spending Score per Segment</div>
+    <div class="chart-box" style="height:240px">
+      <canvas id="scoreBar"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:24px">
+  <div class="card-title">Segment Summary</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Segment</th>
+          <th>Customers</th>
+          <th>%</th>
+          <th>Avg Income</th>
+          <th>Avg Score</th>
+          <th>Avg Age</th>
+          <th>Female %</th>
+          <th>Marketing Strategy</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in cluster_stats %}
+        <tr>
+          <td><span class="pill" style="background:{{ s.color }}22;color:{{ s.color }}">{{ s.name }}</span></td>
+          <td><strong>{{ s.n }}</strong></td>
+          <td>{{ s.pct }}%</td>
+          <td>&#8377;{{ "%.3f"|format(s.avg_income) }}k</td>
+          <td>{{ "%.3f"|format(s.avg_score) }}</td>
+          <td>{{ s.avg_age }}</td>
+          <td>{{ s.female_pct }}%</td>
+          <td style="color:#6b7280;font-size:12px">{{ s.strategy }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Avg Age per Segment</div>
+  <div class="chart-box" style="height:220px">
+    <canvas id="ageBar"></canvas>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-top:24px">
+  <div class="card">
+    <div class="card-title">Contact Details</div>
+    <div style="display:grid;gap:12px">
+      <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:#f8fafc">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Support Team</div>
+        <div style="font-size:22px;font-weight:800;color:var(--text);line-height:1.25">{{ contact_details.team }}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:#fff">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Email</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.5;word-break:break-word">{{ contact_details.email }}</div>
+        </div>
+        <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:#fff">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Phone</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.5">{{ contact_details.phone }}</div>
+        </div>
+      </div>
+      <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:#fff">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Availability</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.5">{{ contact_details.hours }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Need Help?</div>
+    <p style="font-size:13px;color:#6b7280;line-height:1.7;margin:0">
+      Reach out for dataset support, dashboard access issues, retraining help, or guidance on interpreting the current customer segments and model metrics.
+    </p>
+  </div>
+</div>
+
+<script>
+const STATS = {{ cluster_stats | tojson }};
+const TOTAL = {{ total | tojson }};
+const names = STATS.map(s => s.name);
+const colors = STATS.map(s => s.color);
+const fileInput = document.getElementById('dataset_file');
+const dropzone = document.getElementById('dropzone');
+const chooseFileBtn = document.getElementById('chooseFileBtn');
+const fileNote = document.getElementById('fileNote');
+
+function updateSelectedFile() {
+  const file = fileInput.files && fileInput.files[0];
+  fileNote.textContent = file ? file.name : 'No file selected';
+  fileNote.classList.toggle('has-file', Boolean(file));
+}
+
+if (dropzone && fileInput) {
+  const openPicker = () => fileInput.click();
+  dropzone.addEventListener('click', openPicker);
+  chooseFileBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openPicker();
+  });
+  dropzone.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openPicker();
+    }
+  });
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'dragend', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropzone.classList.remove('dragover');
+    });
+  });
+  dropzone.addEventListener('drop', (event) => {
+    const files = event.dataTransfer && event.dataTransfer.files;
+    if (files && files.length) {
+      fileInput.files = files;
+      updateSelectedFile();
+    }
+  });
+  fileInput.addEventListener('change', updateSelectedFile);
+}
+
+fetch('/api/scatter').then(r => r.json()).then(data => {
+  const legend = document.getElementById('scatter-legend');
+  const bySeg = {};
+  STATS.forEach(s => { bySeg[s.name] = []; });
+  data.forEach(c => {
+    if (bySeg[c.Segment]) {
+      bySeg[c.Segment].push({x: c['Annual Income (k$)'], y: c['Spending Score (1-100)'], id: c.CustomerID, age: c.Age, gender: c.Gender});
+    }
+  });
+
+  STATS.forEach(s => {
+    const span = document.createElement('span');
+    span.style.cssText = 'display:flex;align-items:center;gap:5px';
+    span.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${s.color};display:inline-block"></span>${s.name} (${s.n})`;
+    legend.appendChild(span);
+  });
+
+  const centroidDatasets = STATS.map(s => ({
+    label: s.name + ' centroid',
+    data: [{x: s.cx, y: s.cy}],
+    backgroundColor: s.color,
+    pointRadius: 12,
+    pointStyle: 'star',
+    showLine: false
+  }));
+
+  const datasets = STATS.map(s => ({
+    label: s.name,
+    data: bySeg[s.name],
+    backgroundColor: s.color + 'bb',
+    pointRadius: 5,
+    pointHoverRadius: 7,
+    showLine: false
+  })).concat(centroidDatasets);
+
+  new Chart(document.getElementById('scatterChart'), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const p = ctx.raw;
+              if (p.id === undefined) return `${ctx.dataset.label} centroid`;
+              return [`#${p.id} - ${p.gender} - Age ${p.age}`, `Income: ₹${ctx.parsed.x}k  Score: ${ctx.parsed.y}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Annual Income (k$)' }, min: 0, max: 150 },
+        y: { title: { display: true, text: 'Spending Score' }, min: 0, max: 105 }
+      }
+    }
+  });
+});
+
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: names,
+    datasets: [{ data: STATS.map(s => s.n), backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 12 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed} customers (${TOTAL ? Math.round(ctx.parsed / TOTAL * 100) : 0}%)`
+        }
+      }
+    }
+  }
+});
+
+new Chart(document.getElementById('incomeBar'), {
+  type: 'bar',
+  data: {
+    labels: names,
+    datasets: [{ label: 'Avg Income (k$)', data: STATS.map(s => s.avg_income), backgroundColor: colors, borderRadius: 5 }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { ticks: { font: { size: 11 } } }, y: { beginAtZero: true, title: { display: true, text: 'k$' } } }
+  }
+});
+
+new Chart(document.getElementById('scoreBar'), {
+  type: 'bar',
+  data: {
+    labels: names,
+    datasets: [{ label: 'Avg Score', data: STATS.map(s => s.avg_score), backgroundColor: colors.map(c => c + '99'), borderRadius: 5 }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { ticks: { font: { size: 11 } } }, y: { beginAtZero: true, max: 100 } }
+  }
+});
+
+new Chart(document.getElementById('ageBar'), {
+  type: 'bar',
+  data: {
+    labels: names,
+    datasets: [{ label: 'Avg Age', data: STATS.map(s => s.avg_age), backgroundColor: colors.map(c => c + 'cc'), borderRadius: 5 }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { ticks: { font: { size: 11 } } }, y: { beginAtZero: false, min: 20 } }
+  }
+});
+</script>
+{% endblock %}

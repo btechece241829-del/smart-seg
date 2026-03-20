@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}E-Commerce Behavioural Customer Segmentation {% endblock %} </title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo-icon-rounded.svg') }}"/>
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo-icon-rounded.svg') }}"/>
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo-icon-rounded.svg') }}"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f7f8fa;
+      --card:     #ffffff;
+      --border:   #e4e6ea;
+      --text:     #1a1a2e;
+      --muted:    #6b7280;
+      --accent:   #378ADD;
+      --green:    #1D9E75;
+      --red:      #E24B4A;
+      --amber:    #BA7517;
+      --gray:     #888780;
+      --radius:   10px;
+      --shadow:   0 1px 4px rgba(0,0,0,.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 54px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand {
+      font-size: 16px; font-weight: 700;
+      color: var(--text); text-decoration: none;
+      margin-right: 32px; white-space: nowrap;
+    }
+    .nav-brand span { color: var(--accent); }
+    nav a {
+      color: var(--muted); text-decoration: none;
+      padding: 0 14px; height: 54px;
+      display: flex; align-items: center;
+      font-size: 13px; font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    nav a:hover  { color: var(--text); }
+    nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── PAGE ── */
+    .page { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* ── PAGE HEADER ── */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p  { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 14px; color: var(--text);
+    }
+
+    /* ── METRIC CARDS ── */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; margin-bottom: 24px; }
+    .metric-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+    .metric-val  { font-size: 28px; font-weight: 700; color: var(--text); }
+    .metric-key  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    /* ── GRID ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 760px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 9px 12px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--border); }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border: none; }
+    tr:hover td { background: #f9fafb; }
+
+    /* ── BADGE / PILL ── */
+    .pill {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+    }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+    input[type=number], input[type=text], input[type=file], select {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; color: var(--text);
+      background: #fff; outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btn {
+      display: inline-block; padding: 10px 24px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .87; }
+    .btn-outline {
+      background: transparent; color: var(--accent);
+      border: 1.5px solid var(--accent);
+    }
+
+    /* ── ALERT ── */
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .alert-danger  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+    /* ── FILTER ROW ── */
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+    .filter-btn {
+      font-size: 12px; padding: 5px 14px; border-radius: 20px;
+      border: 1px solid var(--border); background: #fff;
+      color: var(--muted); cursor: pointer; font-weight: 500;
+      text-decoration: none; transition: all .15s;
+    }
+    .filter-btn:hover  { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { font-weight: 700; }
+
+    /* ── CHART CONTAINER ── */
+    .chart-box { position: relative; width: 100%; }
+    .upload-card { margin-bottom: 24px; }
+    .upload-grid { display: grid; grid-template-columns: 1.3fr .9fr; gap: 16px; }
+    .upload-help { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .dropzone {
+      border: 1.5px dashed var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #fbfcfe 0%, #f7f9fc 100%);
+      padding: 22px 18px;
+      text-align: center;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+      cursor: pointer;
+    }
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: #f4f8fe;
+      box-shadow: 0 0 0 3px rgba(55,138,221,.08);
+    }
+    .dropzone-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #eaf3fe;
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .dropzone-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .dropzone-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .dropzone-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .file-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      min-height: 18px;
+    }
+    .file-note.has-file {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: .01em;
+      min-height: 28px;
+      line-height: 1.3;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .upload-submit {
+      display: flex;
+      justify-content: center;
+      margin-top: 18px;
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .code-block {
+      background: #0f172a; color: #e2e8f0;
+      border-radius: 10px; padding: 14px;
+      font-size: 12px; line-height: 1.5;
+      overflow: auto; white-space: pre-wrap; max-height: 280px;
+    }
+    .stat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
+    .stat-chip { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #fafbfc; }
+    .stat-chip strong { display: block; font-size: 18px; }
+    .chatbot-toggle {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, #378add 0%, #1d9e75 100%);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: .04em;
+      box-shadow: 0 16px 34px rgba(55,138,221,.28);
+      transition: transform .34s ease, box-shadow .34s ease, opacity .34s ease;
+      z-index: 120;
+      animation: chatbotFloat 5.4s ease-in-out infinite;
+      overflow: hidden;
+      padding: 0;
+    }
+    .chatbot-toggle:hover {
+      transform: translateY(-6px) scale(1.03);
+      box-shadow: 0 22px 42px rgba(55,138,221,.34);
+    }
+    .chatbot-panel {
+      position: fixed;
+      right: 20px;
+      bottom: 90px;
+      width: min(360px, calc(100vw - 24px));
+      height: 520px;
+      background:
+        radial-gradient(circle at top right, rgba(55,138,221,.14), transparent 34%),
+        linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid rgba(55,138,221,.12);
+      border-radius: 22px;
+      box-shadow: 0 20px 55px rgba(15,23,42,.16);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(16px) scale(.98);
+      z-index: 120;
+    }
+    .chatbot-panel.open {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      animation: chatbotPanelIn .26s ease;
+    }
+    .chatbot-toggle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 50%;
+    }
+    .chatbot-header {
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid rgba(55,138,221,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,252,.96) 100%);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .chatbot-header-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .chatbot-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(55,138,221,.12);
+      box-shadow: 0 8px 18px rgba(15,23,42,.08);
+      background: #fff;
+      flex: 0 0 auto;
+    }
+    .chatbot-heading {
+      min-width: 0;
+    }
+    .chatbot-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .01em;
+    }
+    .chatbot-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chatbot-subtitle::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(29,158,117,.12);
+      flex: 0 0 auto;
+    }
+    .chatbot-close {
+      border: none;
+      background: rgba(15,23,42,.04);
+      color: var(--muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      transition: background .15s ease, color .15s ease;
+    }
+    .chatbot-close:hover {
+      background: rgba(55,138,221,.10);
+      color: var(--accent);
+    }
+    .chatbot-body {
+      flex: 1;
+      padding: 16px 14px;
+      background:
+        linear-gradient(180deg, rgba(248,250,252,.85) 0%, rgba(241,245,249,.96) 100%);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .chatbot-msg {
+      max-width: 86%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: 0 8px 18px rgba(15,23,42,.06);
+      animation: chatbotMessageIn .22s ease;
+      transform-origin: bottom;
+    }
+    .chatbot-msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #378add 0%, #2f7ccc 100%);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+    }
+    .chatbot-msg.bot {
+      align-self: flex-start;
+      background: rgba(255,255,255,.96);
+      color: var(--text);
+      border: 1px solid rgba(55,138,221,.10);
+      border-bottom-left-radius: 6px;
+    }
+    .chatbot-rich {
+      display: grid;
+      gap: 10px;
+    }
+    .chatbot-rich p {
+      margin: 0;
+    }
+    .chatbot-rich strong {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .chatbot-rich em {
+      font-style: italic;
+      color: #334155;
+    }
+    .chatbot-rich ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+    .chatbot-rich li {
+      margin: 0;
+    }
+    .chatbot-table-stack {
+      display: grid;
+      gap: 10px;
+    }
+    .chatbot-table-card {
+      border: 1px solid rgba(55,138,221,.10);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .chatbot-table-row {
+      display: grid;
+      gap: 3px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(55,138,221,.08);
+    }
+    .chatbot-table-row:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .chatbot-table-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #1e3a8a;
+    }
+    .chatbot-table-value {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .chatbot-error {
+      font-size: 12px;
+      color: #991b1b;
+      padding: 0 14px 10px;
+      min-height: 18px;
+    }
+    .chatbot-form {
+      border-top: 1px solid rgba(55,138,221,.10);
+      padding: 12px;
+      background: rgba(255,255,255,.96);
+      display: grid;
+      gap: 8px;
+    }
+    .chatbot-input {
+      min-height: 82px;
+      resize: none;
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(55,138,221,.16);
+      border-radius: 14px;
+      font: inherit;
+      color: var(--text);
+      outline: none;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .chatbot-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(55,138,221,.10);
+      background: #fff;
+    }
+    .chatbot-send {
+      width: 100%;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #378add 0%, #2f7ccc 100%);
+      box-shadow: 0 10px 20px rgba(55,138,221,.18);
+    }
+    .chatbot-send:hover {
+      opacity: 1;
+      filter: brightness(1.02);
+    }
+    .chatbot-typing {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chatbot-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(55,138,221,.55);
+      animation: chatbotDot 1s infinite ease-in-out;
+    }
+    .chatbot-dot:nth-child(2) { animation-delay: .14s; }
+    .chatbot-dot:nth-child(3) { animation-delay: .28s; }
+    @keyframes chatbotPanelIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    @keyframes chatbotMessageIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    @keyframes chatbotDot {
+      0%, 80%, 100% {
+        transform: translateY(0);
+        opacity: .35;
+      }
+      40% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+    @keyframes chatbotFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    @media (max-width: 760px) {
+      nav {
+        padding: 0 14px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      nav::-webkit-scrollbar { display: none; }
+      .page {
+        padding: 20px 14px 44px;
+      }
+      .card {
+        padding: 18px 16px;
+      }
+      .upload-grid { grid-template-columns: 1fr; }
+      .dropzone {
+        padding: 18px 14px;
+      }
+      .dropzone-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 17px;
+      }
+      .dropzone-title {
+        font-size: 13px;
+      }
+      .dropzone-subtitle {
+        font-size: 11px;
+      }
+      .dropzone-actions {
+        margin-top: 10px;
+      }
+      .btn,
+      .btn-outline {
+        width: 100%;
+        text-align: center;
+      }
+      .upload-submit .btn {
+        max-width: 260px;
+      }
+      .file-note.has-file {
+        font-size: 16px;
+      }
+      .stat-list {
+        grid-template-columns: 1fr;
+      }
+      .chatbot-toggle {
+        right: 14px;
+        bottom: 14px;
+        animation: none;
+      }
+      .chatbot-panel {
+        right: 12px;
+        left: 12px;
+        bottom: 82px;
+        width: auto;
+        height: 72vh;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span>◆</span> E-SEGMENT</a>
+  <a href="/"          class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+  <a href="/customers" class="{% if request.path == '/customers' %}active{% endif %}">Customers</a>
+  <a href="/segments"  class="{% if request.path == '/segments' %}active{% endif %}">Segments</a>
+  <a href="/metrics"   class="{% if request.path == '/metrics' %}active{% endif %}">Model Metrics</a>
+  <a href="/rfm"       class="{% if request.path == '/rfm' %}active{% endif %}">RFM Metrics</a>
+  <a href="/impact"    class="{% if request.path == '/impact' %}active{% endif %}">Business Impact</a>
+  <a href="/predict"   class="{% if request.path == '/predict' %}active{% endif %}">Predict</a>
+</nav>
+
+<div class="page">
+  {% block content %}{% endblock %}
+</div>
+
+<button class="chatbot-toggle" id="chatbotToggle" type="button" aria-label="Open AI assistant">
+  <img src="{{ url_for('static', filename='img/chatbot-icon.png') }}" alt="AI assistant"/>
+</button>
+
+<div class="chatbot-panel" id="chatbotPanel" aria-live="polite">
+  <div class="chatbot-header">
+    <div class="chatbot-header-main">
+      <img class="chatbot-avatar" src="{{ url_for('static', filename='img/chatbot-icon.png') }}" alt="AI assistant"/>
+      <div class="chatbot-heading">
+        <div class="chatbot-title">AI Dashboard Assistant</div>
+        <div class="chatbot-subtitle">Ask about segments, metrics, or the current dataset</div>
+      </div>
+    </div>
+    <button class="chatbot-close" id="chatbotClose" type="button" aria-label="Close AI assistant">&times;</button>
+  </div>
+  <div class="chatbot-body" id="chatbotBody">
+    <div class="chatbot-msg bot">Ask me about the current dataset, segment performance, clustering metrics, or dashboard usage.</div>
+  </div>
+  <div class="chatbot-error" id="chatbotError"></div>
+  <form class="chatbot-form" id="chatbotForm">
+    <textarea class="chatbot-input" id="chatbotInput" placeholder="Type your question..." required></textarea>
+    <button class="btn chatbot-send" id="chatbotSend" type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+(() => {
+  const toggle = document.getElementById('chatbotToggle');
+  const panel = document.getElementById('chatbotPanel');
+  const closeBtn = document.getElementById('chatbotClose');
+  const form = document.getElementById('chatbotForm');
+  const input = document.getElementById('chatbotInput');
+  const body = document.getElementById('chatbotBody');
+  const errorBox = document.getElementById('chatbotError');
+  const sendBtn = document.getElementById('chatbotSend');
+  const storageKey = 'mallSegChatHistory';
+  const openKey = 'mallSegChatOpen';
+  const welcomeMessage = 'Ask me about the current dataset, segment performance, clustering metrics, or dashboard usage.';
+  const history = [];
+
+  function isPageReload() {
+    const entries = performance.getEntriesByType('navigation');
+    return entries.length > 0 && entries[0].type === 'reload';
+  }
+
+  function saveHistory() {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(history));
+    } catch (error) {
+      console.warn('Unable to save chatbot history.', error);
+    }
+  }
+
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || '[]');
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function setOpen(open) {
+    panel.classList.toggle('open', open);
+    try {
+      localStorage.setItem(openKey, open ? '1' : '0');
+    } catch (error) {
+      console.warn('Unable to save chatbot open state.', error);
+    }
+    if (open) input.focus();
+  }
+
+  function appendMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = `chatbot-msg ${role === 'user' ? 'user' : 'bot'}`;
+    if (role === 'user') {
+      div.textContent = text;
+    } else {
+      div.innerHTML = formatChatText(text);
+    }
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function formatChatText(text) {
+    const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+    const blocks = [];
+    let i = 0;
+
+    function formatInline(value) {
+      let html = escapeHtml(value);
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      return html;
+    }
+
+    function isTableLine(line) {
+      const trimmed = line.trim();
+      return trimmed.includes('|') && trimmed.startsWith('|') && trimmed.endsWith('|');
+    }
+
+    function isDividerLine(line) {
+      return /^\|\s*[-:| ]+\|\s*$/.test(line.trim());
+    }
+
+    while (i < lines.length) {
+      const raw = lines[i];
+      const line = raw.trim();
+
+      if (!line) {
+        i += 1;
+        continue;
+      }
+
+      if (isTableLine(line) && i + 1 < lines.length && isDividerLine(lines[i + 1])) {
+        const header = line.split('|').slice(1, -1).map((cell) => formatInline(cell.trim()));
+        i += 2;
+        const rows = [];
+        while (i < lines.length && isTableLine(lines[i].trim())) {
+          rows.push(
+            lines[i].trim().split('|').slice(1, -1).map((cell) => formatInline(cell.trim()))
+          );
+          i += 1;
+        }
+        const cardsHtml = rows.map((row) => {
+          const rowHtml = header.map((label, index) => {
+            const value = row[index] || '';
+            return (
+              `<div class="chatbot-table-row">` +
+              `<div class="chatbot-table-label">${label}</div>` +
+              `<div class="chatbot-table-value">${value}</div>` +
+              `</div>`
+            );
+          }).join('');
+          return `<div class="chatbot-table-card">${rowHtml}</div>`;
+        }).join('');
+        blocks.push(`<div class="chatbot-table-stack">${cardsHtml}</div>`);
+        continue;
+      }
+
+      if (/^(?:[-*]|•)\s+/.test(line)) {
+        const items = [];
+        while (i < lines.length && /^(?:\s*)(?:[-*]|•)\s+/.test(lines[i])) {
+          items.push(lines[i].replace(/^(?:\s*)(?:[-*]|•)\s+/, '').trim());
+          i += 1;
+        }
+        blocks.push(`<ul>${items.map((item) => `<li>${formatInline(item)}</li>`).join('')}</ul>`);
+        continue;
+      }
+
+      const paragraph = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !(/^(?:\s*)(?:[-*]|•)\s+/.test(lines[i])) &&
+        !(isTableLine(lines[i].trim()) && i + 1 < lines.length && isDividerLine(lines[i + 1]))
+      ) {
+        paragraph.push(formatInline(lines[i].trim()));
+        i += 1;
+      }
+      blocks.push(`<p>${paragraph.join('<br>')}</p>`);
+    }
+
+    return `<div class="chatbot-rich">${blocks.join('')}</div>`;
+  }
+
+  function addTypingIndicator() {
+    const div = document.createElement('div');
+    div.className = 'chatbot-msg bot';
+    div.id = 'chatbotTyping';
+    div.innerHTML = `
+      <span class="chatbot-typing" aria-label="Assistant is typing">
+        <span class="chatbot-dot"></span>
+        <span class="chatbot-dot"></span>
+        <span class="chatbot-dot"></span>
+      </span>
+    `;
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    const typing = document.getElementById('chatbotTyping');
+    if (typing) typing.remove();
+  }
+
+  async function sendMessage(message) {
+    history.push({ role: 'user', content: message });
+    saveHistory();
+    appendMessage('user', message);
+    errorBox.textContent = '';
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Thinking...';
+    addTypingIndicator();
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Chat request failed.');
+      history.push({ role: 'assistant', content: payload.reply });
+      saveHistory();
+      removeTypingIndicator();
+      appendMessage('bot', payload.reply);
+    } catch (error) {
+      removeTypingIndicator();
+      errorBox.textContent = error.message || 'Unable to reach the AI assistant.';
+    } finally {
+      removeTypingIndicator();
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+    }
+  }
+
+  toggle.addEventListener('click', () => setOpen(!panel.classList.contains('open')));
+  closeBtn.addEventListener('click', () => setOpen(false));
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const message = input.value.trim();
+    if (!message) return;
+    input.value = '';
+    setOpen(true);
+    await sendMessage(message);
+  });
+
+  (() => {
+    if (isPageReload()) {
+      try {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(openKey);
+      } catch (error) {
+        console.warn('Unable to clear chatbot state on reload.', error);
+      }
+    }
+
+    const savedHistory = loadHistory();
+    body.innerHTML = '';
+    if (savedHistory.length) {
+      savedHistory.forEach((item) => {
+        const role = item.role === 'assistant' ? 'bot' : 'user';
+        history.push({
+          role: item.role === 'assistant' ? 'assistant' : 'user',
+          content: String(item.content || ''),
+        });
+        appendMessage(role, String(item.content || ''));
+      });
+    } else {
+      appendMessage('bot', welcomeMessage);
+    }
+
+    try {
+      if (localStorage.getItem(openKey) === '1') {
+        setOpen(true);
+      }
+    } catch (error) {
+      console.warn('Unable to load chatbot open state.', error);
+    }
+  })();
+})();
+</script>
+
+</body>
+</html>
