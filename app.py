@@ -680,6 +680,11 @@ def api_scatter():
     return jsonify(app.scatter_payload)
 
 
+@app.route("/healthz")
+def healthz():
+    return jsonify({"status": "ok"}), 200
+
+
 @app.route("/api/stats")
 def api_stats():
     load_runtime_state()
